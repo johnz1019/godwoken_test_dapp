@@ -13,6 +13,8 @@ import { AddressTranslator } from 'nervos-godwoken-integration';
 import { PolyjuiceHttpProvider } from '@polyjuice-provider/web3';
 import { CONFIG } from '../config';
 
+import * as ERC20JSON from '../../build/contracts/ERC20.json';
+
 async function createWeb3() {
     // Modern dapp browsers...
     if ((window as any).ethereum) {
@@ -46,7 +48,10 @@ export function App() {
     const [contractTxHash, setContractTxHash] = useState<string>();
     const [accounts, setAccounts] = useState<string[]>();
     const [pjAddress, setPJAddress] = useState<string>();
+    const [depositAddress, setDepositAddress] = useState<string>();
+
     const [balance, setBalance] = useState<bigint>();
+    const [sudtBalance, setSudtBalance] = useState<bigint>();
     const [existingContractIdInputValue, setExistingContractIdInputValue] = useState<string>();
     const [storedValue, setStoredValue] = useState<number | undefined>();
     const [transactionInProgress, setTransactionInProgress] = useState(false);
@@ -151,6 +156,22 @@ export function App() {
             setPJAddress(polyjuiceAddress);
             console.log('polyjuiceAddress', polyjuiceAddress);
 
+            const _depositAddress = await addressTranslator.getLayer2DepositAddress(
+                _web3,
+                _accounts[0]
+            );
+            console.log(`Layer 2 Deposit Address on Layer 1: \n${_depositAddress.addressString}`);
+            setDepositAddress(_depositAddress.addressString);
+
+            const contractProxy = new _web3.eth.Contract(
+                ERC20JSON.abi as AbiItem[],
+                '0xa5F863205f894b8251d11908800c723406A212d0'
+            );
+            const _sudtBalance = await contractProxy.methods.balanceOf(polyjuiceAddress).call({
+                from: _accounts[0]
+            });
+            setSudtBalance(sudtBalance);
+
             if (_accounts && _accounts[0]) {
                 const _l2Balance = BigInt(await _web3.eth.getBalance(_accounts[0]));
                 setBalance(_l2Balance);
@@ -167,7 +188,20 @@ export function App() {
             PolyJuice address: <b>{pjAddress}</b>
             <br />
             <br />
+            Deposit address: <b>{depositAddress}</b>
+            <br /> You can transfer ETH to this address using{' '}
+            <a
+                href="https://force-bridge-test.ckbapp.dev/bridge/Ethereum/Nervos?xchain-asset=0x0000000000000000000000000000000000000000
+"
+            >
+                Force Bridge
+            </a>
+            .
+            <br />
+            <br />
             Balance: <b>{balance ? (balance / 10n ** 8n).toString() : <LoadingIndicator />} ETH</b>
+            <br />
+            SUDT Balance: <b>{sudtBalance ? sudtBalance.toString() : <LoadingIndicator />} sudt</b>
             <br />
             <br />
             Deployed contract address: <b>{contract?.address || '-'}</b> <br />
