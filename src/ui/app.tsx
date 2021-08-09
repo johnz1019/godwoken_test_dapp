@@ -167,11 +167,18 @@ export function App() {
                 ERC20JSON.abi as AbiItem[],
                 '0xa5F863205f894b8251d11908800c723406A212d0'
             );
-            const _sudtBalance = await contractProxy.methods.balanceOf(polyjuiceAddress).call({
-                from: _accounts[0]
-            });
-            console.log('_sudtBalance', _sudtBalance);
-            setSudtBalance(_sudtBalance);
+
+            const getSudtBalance = async () => {
+                const _sudtBalance = await contractProxy.methods.balanceOf(polyjuiceAddress).call({
+                    from: _accounts[0]
+                });
+                console.log('_sudtBalance', _sudtBalance);
+                setSudtBalance(_sudtBalance);
+
+                setTimeout(getSudtBalance, 30000);
+            };
+
+            getSudtBalance();
 
             if (_accounts && _accounts[0]) {
                 const _l2Balance = BigInt(await _web3.eth.getBalance(_accounts[0]));
