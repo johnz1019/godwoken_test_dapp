@@ -170,7 +170,8 @@ export function App() {
             const _sudtBalance = await contractProxy.methods.balanceOf(polyjuiceAddress).call({
                 from: _accounts[0]
             });
-            setSudtBalance(sudtBalance);
+            console.log('_sudtBalance', _sudtBalance);
+            setSudtBalance(_sudtBalance);
 
             if (_accounts && _accounts[0]) {
                 const _l2Balance = BigInt(await _web3.eth.getBalance(_accounts[0]));
