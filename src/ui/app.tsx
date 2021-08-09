@@ -9,10 +9,22 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { SimpleStorageWrapper } from '../lib/contracts/SimpleStorageWrapper';
 
+import { AddressTranslator } from 'nervos-godwoken-integration';
+import { PolyjuiceHttpProvider } from '@polyjuice-provider/web3';
+import { CONFIG } from '../config';
+
 async function createWeb3() {
     // Modern dapp browsers...
     if ((window as any).ethereum) {
-        const web3 = new Web3((window as any).ethereum);
+        // const web3 = new Web3((window as any).ethereum);
+        const godwokenRpcUrl = CONFIG.WEB3_PROVIDER_URL;
+        const providerConfig = {
+            rollupTypeHash: CONFIG.ROLLUP_TYPE_HASH,
+            ethAccountLockCodeHash: CONFIG.ETH_ACCOUNT_LOCK_CODE_HASH,
+            web3Url: godwokenRpcUrl
+        };
+        const provider = new PolyjuiceHttpProvider(godwokenRpcUrl, providerConfig);
+        const web3 = new Web3(provider);
 
         try {
             // Request account access if needed
@@ -31,7 +43,9 @@ async function createWeb3() {
 export function App() {
     const [web3, setWeb3] = useState<Web3>(null);
     const [contract, setContract] = useState<SimpleStorageWrapper>();
+    const [contractTxHash, setContractTxHash] = useState<string>();
     const [accounts, setAccounts] = useState<string[]>();
+    const [pjAddress, setPJAddress] = useState<string>();
     const [balance, setBalance] = useState<bigint>();
     const [existingContractIdInputValue, setExistingContractIdInputValue] = useState<string>();
     const [storedValue, setStoredValue] = useState<number | undefined>();
@@ -70,7 +84,8 @@ export function App() {
         try {
             setTransactionInProgress(true);
 
-            await _contract.deploy(account);
+            const deployTxHash = await _contract.deploy(account);
+            setContractTxHash(deployTxHash);
 
             setExistingContractAddress(_contract.address);
             toast(
@@ -129,6 +144,13 @@ export function App() {
             setAccounts(_accounts);
             console.log({ _accounts });
 
+            const addressTranslator = new AddressTranslator();
+            const polyjuiceAddress = addressTranslator.ethAddressToGodwokenShortAddress(
+                _accounts[0]
+            );
+            setPJAddress(polyjuiceAddress);
+            console.log('polyjuiceAddress', polyjuiceAddress);
+
             if (_accounts && _accounts[0]) {
                 const _l2Balance = BigInt(await _web3.eth.getBalance(_accounts[0]));
                 setBalance(_l2Balance);
@@ -142,11 +164,15 @@ export function App() {
         <div>
             Your ETH address: <b>{accounts?.[0]}</b>
             <br />
+            PolyJuice address: <b>{pjAddress}</b>
+            <br />
             <br />
             Balance: <b>{balance ? (balance / 10n ** 8n).toString() : <LoadingIndicator />} ETH</b>
             <br />
             <br />
             Deployed contract address: <b>{contract?.address || '-'}</b> <br />
+            <br />
+            Deployed contract tx hash: <b>{contractTxHash || '-'}</b> <br />
             <br />
             <hr />
             <p>
